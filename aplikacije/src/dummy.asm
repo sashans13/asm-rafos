@@ -3,20 +3,22 @@
 ; 08.2008. Operativni sistemi
 ; ==================================================================
 ; RAF_OS -- Trivijalni skolski operativni sistem
-; Interpreter batch skriptova
 ;
+; Dummy proces - tester za multitasking
 ; ------------------------------------------------------------------
-; Inicijalna verzija 0.0.1 (Stevan Milinkovic, 06.12.2011.)
+; Inicijalna verzija 0.0.1 (Marko Bakovic, 04.01.2015)
 ; ------------------------------------------------------------------
 
-; --------------------------------------------
-; Ovde pocinje izvrsavanje BAT intepretera
-; --------------------------------------------
+%include "OS_API.inc"
 
-_run_batch:
-    
-    mov     si, .BatPozdrav
-    call    _print_string
+	mov si, Naslov
+	call OS:_get_app_offset
+	add si, ax
+	call OS:_print_string
+	jmp $
+    call OS:_sys_exit
     ret
-    
- .BatPozdrav   db 'Batch interpreter V.0.0.1',10,13,0   
+
+Naslov db 'RAF_OS dummy', 13, 10, 0
+
+

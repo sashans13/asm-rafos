@@ -98,10 +98,103 @@ set_interrupts:
 		sti
 		popa
 		ret
-		
+
 novi_int08:									; Poziva stari int 08h pa zatim rutinu za stampanje
 		int 	7Ah							; Pozivamo originalni int 08h
 		call	printer
+		; ------------------------------------------------------------------------------------------
+		; SCHEDULER RUTINA
+		; ------------------------------------------------------------------------------------------														
+		push ds 
+		push es 
+		push gs
+		push fs	 								; guramo segmente na stek 
+
+		push ax
+		push bx
+		push cx
+		push dx
+		push bp
+		push si
+		push di 								; guramo registre na stek
+
+		push sys
+		pop ds
+		push sys
+		pop es
+		push sys
+		pop gs
+		push sys
+		pop fs
+
+		mov si, sch_stacks
+		xor ah, ah
+		mov al, byte [sch_active_proc]
+		add si, ax 							; pamtimo sp trenutnog procesa 
+		add si, ax 
+		mov word [si], sp
+
+		mov al, byte [sch_queue]			; sch_active_proc je sch_queue[0] 
+		mov byte [sch_active_proc], al 	
+
+		xor ch, ch 						
+		mov cl, byte [sch_queue_size] 		; ubacujemo broj rotiranja 
+		dec cl 								; (queue_size - 1)
+
+		cmp cx, 0
+		je .update_stack
+
+		mov di, sch_queue 					; ubacujemo pocetak queue-a na di
+		.rotate_queue: 	
+			mov si, di 						; sledeci u nizu pomeramo na trenutni 
+			inc si  						; si - sledeci
+			mov al, byte[si]
+			mov byte [di], al 				; di - trenutni
+			inc di 									
+		loop .rotate_queue 	
+
+		mov al, byte [sch_active_proc]		; na kraj queue-a stavljamo prvi 			
+		mov byte [si], al 		 			; u nizu ( trenutni proces )
+											
+		.update_stack:
+		mov si, sch_stacks				
+		xor ah, ah
+		mov al, byte [sch_active_proc] 
+		add si, ax
+		add si, ax	
+		mov sp, word [si]					; na sp stavljamo stek novog(trenutnog) procesa
+
+		; proveri da li je proces oznacen za ubijanje
+		mov si, sch_kills
+		add si, ax
+		xor ah, ah
+		mov al, byte [si]
+		cmp ax, 0
+		jne .za_ubijanje
+
+		pop di
+		pop si
+		pop bp
+		pop dx
+		pop cx
+		pop bx
+		pop ax							; izvlacimo kontekst sa steka
+
+		pop fs 
+		pop gs 
+		pop es 
+		pop ds 							; izvlacimo segmente sa steka 
+
+		jmp .kraj
+
+	.za_ubijanje:
+		pushf
+		push sys
+		push _izbaci_proces
+		; ------------------------------------------------------------------------------------------
+		; SCHEDULER RUTINA KRAJ
+		; ------------------------------------------------------------------------------------------
+	.kraj:
 		iret
 		
 novi_int10:									; int 10h ne menja flagove tako da ne moramo da ih azuriramo
