@@ -1,5 +1,4 @@
 # asm-rafos
-=========
 
 RAF Operating System (RAF_OS) - Multiprocessing support
 
